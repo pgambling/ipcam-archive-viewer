@@ -1,0 +1,30 @@
+{
+  "name": "security-cam-archive-viewer",
+  "description": "Camera snapshot archive viewer",
+  "repository": {
+    "type" : "git",
+    "url" : "?"
+  },
+  "readme": "TODO",
+  "version": "0.0.1",
+  "private": true,
+  "author": {
+    "name": "Philippe Gambling"
+  },
+  "main": "app.js",
+  "engines": {
+    "node": ">=0.10.12"
+  },
+  "dependencies": {
+    "express": "3.3.4",
+    "async": "0.2.9"
+  },
+  "devDependencies": {
+    "grunt": "0.4.1",
+    "grunt-contrib-clean": "0.4.1",
+    "grunt-contrib-copy": "0.4.1",
+    "grunt-contrib-jshint": "0.6.0",
+    "grunt-contrib-compress": "0.5.2",
+    "grunt-exec": "0.4.2"
+  }
+}
