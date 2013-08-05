@@ -1,4 +1,4 @@
 {
   "PORT": 5719,
-  "ARCHIVE_DIR": "/Users/phil/dev/security_cam_pics"
+  "ARCHIVE_DIR": "ENTER PATH TO CAMERA IMAGES"
 }
