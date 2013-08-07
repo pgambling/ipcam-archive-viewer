@@ -45,7 +45,7 @@ function generateSnapshotList(callback) {
   });
 }
 
-var buildIndex = function(json) {
+function buildIndex(json) {
   var html =
   '<!doctype html>' +
   '<html>' +
@@ -59,28 +59,33 @@ var buildIndex = function(json) {
         '<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>' +
     '<![endif]-->' +
     '<link rel="stylesheet" type="text/css" href="css/bootstrap-2.3.2.min.css">' +
-    '<link rel="stylesheet" type="text/less" href="less/main.less">' +
-    '<script src="less/less-1.3.3.min.js"></script>' +
+    '<link rel="stylesheet" type="text/css" href="css/bootstrap-datepicker-1.1.3.css">' +
+    '<link rel="stylesheet" type="text/css" href="css/main.css">' +
   '</head>' +
   '<body>' +
     '<div id="bodyContainer">' +
       '<h1 id="imageDateTime">Loading...</h1>' +
-      '<div id="imageContainer"><img id="currentSnapshot" src="#" alt="camera snapshot" /></div>' +
-      '<div id="controls">' +
-        '<button id="earlier" class="btn btn-large">&laquo Earlier</button>' +
-        '<button id="later" class="btn btn-large">Later &raquo</button>' +
+      '<div id="imageContainer">' +
+        '<img id="currentSnapshot" src="#" alt="camera snapshot" />' +
+        '<div id="controls">' +
+          '<button id="earlier" class="btn btn-large">&laquo Earlier</button>' +
+          '<button id="later" class="btn btn-large">Later &raquo</button>' +
+        '</div>' +
+      '</div>' +
+      '<div id="datetimeInputContainer">' +
+        '<div class="datepicker"></div>' +
+        '<div id="timepickerContainer"></div>' +
       '</div>' +
     '</div>' +
-    '<script src="js/json3.js"></script>' +
     '<script src="js/jquery-1.10.1.min.js"></script>' +
-    '<script src="js/underscore-1.5.1.min.js"></script>' +
+    '<script src="js/bootstrap-datepicker-1.1.3.js"></script>' +
     '<script src="js/index.js"></script>' +
     '<script>window.APP.setSnapshotList(' + json + ');</script>' +
   '</body>' +
   '</html>';
 
   return html;
-};
+}
 
 
 //-----------------------------------------------------------------------------
