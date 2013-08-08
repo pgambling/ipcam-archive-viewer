@@ -8,6 +8,9 @@ window.APP = window.APP || {};
 var SNAPSHOT_LIST = []; // This will be set by an injected script tag
 var CURRENT_INDEX = 0;
 
+//-----------------------------------------------------------------------------
+// Timepicker
+//-----------------------------------------------------------------------------
 function buildTimepicker() {
   var html =
   '<div class="timepicker-widget">' +
@@ -57,6 +60,163 @@ function buildTimepicker() {
   return html;
 }
 
+function toggleMeridian() {
+  var meridianEl = $('#meridian');
+  var meridian = meridianEl.val();
+  if (meridian === 'AM') {
+    meridianEl.val('PM');
+  }
+  else {
+    meridianEl.val('AM');
+  }
+}
+
+function pad(num) {
+  if (num < 10) {
+    return '0' + num;
+  }
+
+  return num.toString();
+}
+
+function updateDigit(inputId, action) {
+  var inputEl = $('#' + inputId);
+  var currentVal = parseInt(inputEl.val(), 10);
+  var newVal = action(currentVal);
+
+  inputEl.val(pad(newVal));
+}
+
+function doDecMinute(currentVal) {
+  var newVal = currentVal-1;
+  if (newVal < 0) {
+    newVal = 59;
+    decrementHour();
+  }
+  return newVal;
+}
+
+function doIncMinute(currentVal) {
+  var newVal = currentVal+1;
+  if (newVal > 59) {
+    newVal = 0;
+    incrementHour();
+  }
+  return newVal;
+}
+
+function doDecHour(currentVal) {
+  var newVal = currentVal-1;
+  if (newVal <= 0) {
+    newVal = 12;
+  }
+
+  if (newVal === 11) {
+    toggleMeridian();
+  }
+
+  return newVal;
+}
+
+function doIncHour(currentVal) {
+  var newVal = currentVal+1;
+  if (newVal > 12) {
+    newVal = 1;
+  }
+
+  if (newVal === 12) {
+    toggleMeridian();
+  }
+
+  return newVal;
+}
+
+function decrementMinute() {
+  updateDigit('minute', doDecMinute);
+}
+
+function incrementMinute() {
+  updateDigit('minute', doIncMinute);
+}
+
+function decrementHour() {
+  updateDigit('hour', doDecHour);
+}
+
+function incrementHour() {
+  updateDigit('hour', doIncHour);
+}
+
+function clickDecrementMinute(e) {
+  decrementMinute();
+  onDateTimeChange();
+  e.preventDefault();
+}
+
+function clickIncrementMinute(e) {
+  incrementMinute();
+  onDateTimeChange();
+  e.preventDefault();
+}
+
+function clickDecrementHour(e) {
+  decrementHour();
+  onDateTimeChange();
+  e.preventDefault();
+}
+
+function clickIncrementHour(e) {
+  incrementHour();
+  onDateTimeChange();
+  e.preventDefault();
+}
+
+function clickToggleMeridian(e) {
+  toggleMeridian();
+  onDateTimeChange();
+  e.preventDefault();
+}
+
+function setTimePicker(time) {
+  var hour = time.getHours();
+  var meridian = 'AM';
+  if (hour > 12) {
+    meridian = 'PM';
+    hour -= 12;
+  }
+  $('#hour').val(pad(hour));
+  $('#minute').val(pad(time.getMinutes()));
+  $('#meridian').val(meridian);
+}
+
+function getTimePicker() {
+  var hour = parseInt($('#hour').val(), 10);
+  var minute = parseInt($('#minute').val(), 10);
+  var meridian = $('#meridian').val();
+
+  return {
+    hour: hour,
+    minute: minute,
+    meridian: meridian
+  };
+}
+
+//-----------------------------------------------------------------------------
+// Main Page Functionality
+//-----------------------------------------------------------------------------
+function setDateTime(time) {
+  setTimePicker(time);
+  $('#datepicker').datepicker('update', time);
+}
+
+function getDateTime() {
+
+}
+
+function onDateTimeChange() {
+  // TODO Find new CURRENT_INDEX
+}
+
 function setSnapshotList(snapshotList) {
   SNAPSHOT_LIST = snapshotList;
 }
@@ -75,6 +235,7 @@ function update() {
 
   var time = new Date(snapshot.time);
   $('h1#imageDateTime').text(time.toDateString() + ' ' + time.toLocaleTimeString());
+  setDateTime(time);
 
   $('button#earlier').prop('disabled', CURRENT_INDEX === SNAPSHOT_LIST.length-1);
   $('button#later').prop('disabled', CURRENT_INDEX === 0);
@@ -100,14 +261,22 @@ function keydown(e) {
 }
 
 function addEvents() {
-  $('button#later').click(clickLater);
-  $('button#earlier').click(clickEarlier);
+  var bodyEl = $('body');
+
+  bodyEl.on('click', '.toggleMeridian', clickToggleMeridian);
+  bodyEl.on('click', '.decrementHour', clickDecrementHour);
+  bodyEl.on('click', '.incrementHour', clickIncrementHour);
+  bodyEl.on('click', '.decrementMinute', clickDecrementMinute);
+  bodyEl.on('click', '.incrementMinute', clickIncrementMinute);
+
+  bodyEl.on('click', '#later', clickLater);
+  bodyEl.on('click', '#earlier', clickEarlier);
 
   $(document).keydown(keydown);
 }
 
 function init() {
-  $('.datepicker').datepicker();
+  $('#datepicker').datepicker();
   $('#timepickerContainer').html(buildTimepicker());
 
   update();

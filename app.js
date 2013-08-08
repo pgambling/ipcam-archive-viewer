@@ -73,7 +73,7 @@ function buildIndex(json) {
         '</div>' +
       '</div>' +
       '<div id="datetimeInputContainer">' +
-        '<div class="datepicker"></div>' +
+        '<div id="datepicker"></div>' +
         '<div id="timepickerContainer"></div>' +
       '</div>' +
     '</div>' +

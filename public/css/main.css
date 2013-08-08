@@ -5,29 +5,18 @@ div#bodyContainer {
 div#imageContainer {
     float: left;
 }
-div#controls {
-    position: relative;
-    /*width: 640px;*/
-/*    margin: 0 auto;*/
-}
 button#later, button#earlier {
-    /*position: absolute;*/
     margin: 10px 0;
 }
 button#earlier {
-    /*left: 0;*/
     float: left;
 }
 button#later {
-    /*right: 0;*/
     float: right;
 }
 div#timepickerContainer {
     width: 160px;
     margin: 0 auto;
-}
-div.datepicker {
-    /*margin: 0 auto;*/
 }
 div#datetimeInputContainer {
     float: left;
