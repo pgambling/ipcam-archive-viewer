@@ -204,17 +204,41 @@ function getTimePicker() {
 //-----------------------------------------------------------------------------
 // Main Page Functionality
 //-----------------------------------------------------------------------------
+
+function initDatepicker() {
+  var startDate = new Date(SNAPSHOT_LIST[SNAPSHOT_LIST.length-1].time);
+  var endDate = new Date(SNAPSHOT_LIST[0].time);
+
+  $('#datepicker').datepicker({
+    startDate: startDate,
+    endDate: endDate
+  });
+}
+
 function setDateTime(time) {
   setTimePicker(time);
   $('#datepicker').datepicker('update', time);
 }
 
 function getDateTime() {
+  var dt = $('#datepicker').datepicker('getDate');
+  var time = getTimePicker();
+  var hour = time.hour + (time.meridian === 'PM' ? 12: 0);
+  dt.setHours(hour);
+  dt.setMinutes(time.minute);
 
+  return dt;
 }
 
 function onDateTimeChange() {
-  // TODO Find new CURRENT_INDEX
+  var time = getDateTime().getTime();
+
+  for (var i=0, len=SNAPSHOT_LIST.length; i<len; i++) {
+    if (time < SNAPSHOT_LIST[i].time) continue;
+
+    CURRENT_INDEX = i;
+    return update();
+  }
 }
 
 function setSnapshotList(snapshotList) {
@@ -272,11 +296,13 @@ function addEvents() {
   bodyEl.on('click', '#later', clickLater);
   bodyEl.on('click', '#earlier', clickEarlier);
 
+  $('#datepicker').on('changeDate', onDateTimeChange);
+
   $(document).keydown(keydown);
 }
 
 function init() {
-  $('#datepicker').datepicker();
+  initDatepicker();
   $('#timepickerContainer').html(buildTimepicker());
 
   update();

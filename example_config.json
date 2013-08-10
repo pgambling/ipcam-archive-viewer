@@ -1,4 +1,5 @@
 {
+  "TITLE": "Front Door",
   "PORT": 5719,
   "ARCHIVE_DIR": "ENTER PATH TO CAMERA IMAGES"
 }

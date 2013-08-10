@@ -52,14 +52,14 @@ function buildIndex(json) {
   '<head>' +
     '<meta charset="utf-8">' +
     '<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">' +
-    '<title>Front Door Archive</title>' +
+    '<title>' + CONFIG.TITLE + '</title>' +
     '<meta name="viewport" content="width=device-width">' +
     '<!-- HTML5 shim, for IE6-8 support of HTML elements -->' +
     '<!--[if lt IE 9]>' +
         '<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>' +
     '<![endif]-->' +
     '<link rel="stylesheet" type="text/css" href="css/bootstrap-2.3.2.min.css">' +
-    '<link rel="stylesheet" type="text/css" href="css/bootstrap-datepicker-1.1.3.css">' +
+    '<link rel="stylesheet" type="text/css" href="css/bootstrap-datepicker-20130809.css">' +
     '<link rel="stylesheet" type="text/css" href="css/main.css">' +
   '</head>' +
   '<body>' +
@@ -78,7 +78,7 @@ function buildIndex(json) {
       '</div>' +
     '</div>' +
     '<script src="js/jquery-1.10.1.min.js"></script>' +
-    '<script src="js/bootstrap-datepicker-1.1.3.js"></script>' +
+    '<script src="js/bootstrap-datepicker-20130809.js"></script>' +
     '<script src="js/index.js"></script>' +
     '<script>window.APP.setSnapshotList(' + json + ');</script>' +
   '</body>' +
