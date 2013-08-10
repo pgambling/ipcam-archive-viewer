@@ -180,8 +180,10 @@ function clickToggleMeridian(e) {
 function setTimePicker(time) {
   var hour = time.getHours();
   var meridian = 'AM';
-  if (hour > 12) {
+  if (hour > 11) {
     meridian = 'PM';
+  }
+  if (hour > 12) {
     hour -= 12;
   }
   $('#hour').val(pad(hour));
@@ -193,6 +195,14 @@ function getTimePicker() {
   var hour = parseInt($('#hour').val(), 10);
   var minute = parseInt($('#minute').val(), 10);
   var meridian = $('#meridian').val();
+
+  if (meridian === 'PM' && hour < 12) {
+    hour += 12;
+  }
+
+  if (meridian === 'AM' && hour === 12) {
+    hour = 0;
+  }
 
   return {
     hour: hour,
@@ -223,21 +233,31 @@ function setDateTime(time) {
 function getDateTime() {
   var dt = $('#datepicker').datepicker('getDate');
   var time = getTimePicker();
-  var hour = time.hour + (time.meridian === 'PM' ? 12: 0);
+  var hour = time.hour;
   dt.setHours(hour);
   dt.setMinutes(time.minute);
-
   return dt;
 }
 
 function onDateTimeChange() {
   var time = getDateTime().getTime();
+  var earlier, later;
 
-  for (var i=0, len=SNAPSHOT_LIST.length; i<len; i++) {
-    if (time < SNAPSHOT_LIST[i].time) continue;
+  for (var i=1, len=SNAPSHOT_LIST.length; i<len; i++) {
+    later = SNAPSHOT_LIST[i-1].time;
+    earlier = SNAPSHOT_LIST[i].time;
 
-    CURRENT_INDEX = i;
-    return update();
+    if ((time > later) || (time < earlier)) continue;
+
+    // pick the snapshot closest to the selected time
+    if ((later-time) < (time-earlier)) { // choose later
+      CURRENT_INDEX = i-1;
+    }
+    else { // choose earlier
+      CURRENT_INDEX = i;
+    }
+
+    return update(false);
   }
 }
 
@@ -245,7 +265,7 @@ function setSnapshotList(snapshotList) {
   SNAPSHOT_LIST = snapshotList;
 }
 
-function update() {
+function update(updateDateTimeInput) {
   if (CURRENT_INDEX >= SNAPSHOT_LIST.length) {
     CURRENT_INDEX = SNAPSHOT_LIST.length - 1;
   }
@@ -259,10 +279,13 @@ function update() {
 
   var time = new Date(snapshot.time);
   $('h1#imageDateTime').text(time.toDateString() + ' ' + time.toLocaleTimeString());
-  setDateTime(time);
 
   $('button#earlier').prop('disabled', CURRENT_INDEX === SNAPSHOT_LIST.length-1);
   $('button#later').prop('disabled', CURRENT_INDEX === 0);
+
+  if (updateDateTimeInput !== false) {
+    setDateTime(time);
+  }
 }
 
 function clickLater() {
