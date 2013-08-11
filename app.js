@@ -5,6 +5,7 @@ var fs = require('fs');
 var path = require('path');
 var http = require('http');
 var async = require('async');
+var _ = require('underscore');
 var express = require('express');
 
 //
@@ -86,7 +87,7 @@ function generateSnapshotList(callback) {
 //-----------------------------------------------------------------------------
 // Main Page
 //-----------------------------------------------------------------------------
-function buildIndex(snapshotList) {
+function buildIndex(initialImage, snapshotList) {
   var html =
   '<!doctype html>' +
   '<html>' +
@@ -107,7 +108,7 @@ function buildIndex(snapshotList) {
     '<div id="bodyContainer">' +
       '<h1 id="imageDateTime">Loading...</h1>' +
       '<div id="imageContainer">' +
-        '<img id="currentSnapshot" src="' + snapshotList[0].image + '" alt="camera snapshot" />' +
+        '<img id="currentSnapshot" src="' + initialImage + '" alt="camera snapshot" />' +
         '<div id="controls">' +
           '<button id="earlier" class="btn btn-large">&laquo Earlier</button>' +
           '<button id="later" class="btn btn-large">Later &raquo</button>' +
@@ -141,7 +142,22 @@ app.use(express.compress());
 //-----------------------------------------------------------------------------
 app.get('/', function(req, res) {
   generateSnapshotList(function(snapshotList) {
-    res.send(buildIndex(snapshotList));
+    var initialImage = snapshotList[0].image;
+    var time = parseInt(req.query.time, 10);
+
+    if (! isNaN(time)) {
+      var snapshot = _.find(snapshotList, function(s) {
+        return s.time === time;
+      });
+
+      if (_.isObject(snapshot)) {
+        initialImage = snapshot.image;
+      }
+      else {
+        return res.send(404);
+      }
+    }
+    res.send(buildIndex(initialImage, snapshotList));
   });
 });
 

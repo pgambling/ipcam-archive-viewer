@@ -214,6 +214,17 @@ function getTimePicker() {
 //-----------------------------------------------------------------------------
 // Main Page Functionality
 //-----------------------------------------------------------------------------
+function initCurrentIndex() {
+  // initialize the page to whatever image the page loaded with
+  var image = $('#currentSnapshot').attr('src');
+  for (var i=0, len=SNAPSHOT_LIST.length; i<len; i++) {
+    if (SNAPSHOT_LIST[i].image === image) {
+      CURRENT_INDEX = i;
+      return;
+    }
+  }
+  CURRENT_INDEX = 0;
+}
 
 function initDatepicker() {
   var startDate = new Date(SNAPSHOT_LIST[SNAPSHOT_LIST.length-1].time);
@@ -265,15 +276,13 @@ function setSnapshotList(snapshotList) {
   SNAPSHOT_LIST = snapshotList;
 }
 
-function update(updateDateTimeInput) {
-  if (CURRENT_INDEX >= SNAPSHOT_LIST.length) {
-    CURRENT_INDEX = SNAPSHOT_LIST.length - 1;
-  }
+function updateHistory() {
+  var newUrl = document.URL.split('?')[0] + '?time=' + SNAPSHOT_LIST[CURRENT_INDEX].time.toString();
+  history.replaceState({ index: CURRENT_INDEX }, null, newUrl);
+}
 
-  if (CURRENT_INDEX < 0) {
-    CURRENT_INDEX = 0;
-  }
-
+// NOTE: This function needs refactoring... seems brittle
+function update(updateDateTimeInput, doPushState) {
   var snapshot = SNAPSHOT_LIST[CURRENT_INDEX];
   $('img#currentSnapshot').attr('src', snapshot.image);
 
@@ -286,14 +295,22 @@ function update(updateDateTimeInput) {
   if (updateDateTimeInput !== false) {
     setDateTime(time);
   }
+
+  if (doPushState !== false) {
+    updateHistory();
+  }
 }
 
 function clickLater() {
+  if (CURRENT_INDEX === 0) return;
+
   CURRENT_INDEX--;
   update();
 }
 
 function clickEarlier() {
+  if (CURRENT_INDEX >= SNAPSHOT_LIST.length) return;
+
   CURRENT_INDEX++;
   update();
 }
@@ -305,6 +322,13 @@ function keydown(e) {
   else if (e.which === 39) { // right
     clickLater();
   }
+}
+
+function popstate(e) {
+  if (! e.state) return;
+
+  CURRENT_INDEX = e.state.index;
+  update(true, false);
 }
 
 function addEvents() {
@@ -322,9 +346,12 @@ function addEvents() {
   $('#datepicker').on('changeDate', onDateTimeChange);
 
   $(document).keydown(keydown);
+
+  window.onpopstate = popstate;
 }
 
 function init() {
+  initCurrentIndex();
   initDatepicker();
   $('#timepickerContainer').html(buildTimepicker());
 
