@@ -7,6 +7,7 @@ window.APP = window.APP || {};
 
 var SNAPSHOT_LIST = []; // This will be set by an injected script tag
 var CURRENT_INDEX = 0;
+var URL_UPDATE_TIMEOUT = 0; // timeout id for the delayed url update
 
 //-----------------------------------------------------------------------------
 // Timepicker
@@ -268,7 +269,9 @@ function onDateTimeChange() {
       CURRENT_INDEX = i;
     }
 
-    return update(false);
+    update(false);
+    updateUrl();
+    return;
   }
 }
 
@@ -276,13 +279,19 @@ function setSnapshotList(snapshotList) {
   SNAPSHOT_LIST = snapshotList;
 }
 
-function updateHistory() {
+function replaceUrl() {
   var newUrl = document.URL.split('?')[0] + '?time=' + SNAPSHOT_LIST[CURRENT_INDEX].time.toString();
-  history.replaceState({ index: CURRENT_INDEX }, null, newUrl);
+  history.replaceState(null, null, newUrl);
+}
+
+function updateUrl() {
+  // reset url update if key was pressed before timeout fired
+  clearTimeout(URL_UPDATE_TIMEOUT);
+  URL_UPDATE_TIMEOUT = setTimeout(replaceUrl, 200);
 }
 
 // NOTE: This function needs refactoring... seems brittle
-function update(updateDateTimeInput, doPushState) {
+function update(updateDateTimeInput) {
   var snapshot = SNAPSHOT_LIST[CURRENT_INDEX];
   $('img#currentSnapshot').attr('src', snapshot.image);
 
@@ -293,11 +302,7 @@ function update(updateDateTimeInput, doPushState) {
   $('button#later').prop('disabled', CURRENT_INDEX === 0);
 
   if (updateDateTimeInput !== false) {
-    setDateTime(time);
-  }
-
-  if (doPushState !== false) {
-    updateHistory();
+    setDateTime(time); // TODO: Call this outside of update and at initialization
   }
 }
 
@@ -306,6 +311,7 @@ function clickLater() {
 
   CURRENT_INDEX--;
   update();
+  updateUrl();
 }
 
 function clickEarlier() {
@@ -313,6 +319,7 @@ function clickEarlier() {
 
   CURRENT_INDEX++;
   update();
+  updateUrl();
 }
 
 function keydown(e) {
