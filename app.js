@@ -2,6 +2,8 @@
 // Dependencies
 //-----------------------------------------------------------------------------
 var fs = require('fs');
+var path = require('path');
+var http = require('http');
 var async = require('async');
 var express = require('express');
 
@@ -16,36 +18,75 @@ if(! fs.existsSync('./config.json')) {
 var CONFIG = require('./config.json');
 
 //-----------------------------------------------------------------------------
-// Main Page
+// Camera image management
 //-----------------------------------------------------------------------------
+function generateFileName(date) {
+  return date.toISOString().replace(/:/g, '').substr(0,17) + 'Z.jpg';
+}
+
+function filenameToDate(fname) {
+  var dateStr = fname.split('.')[0];
+  dateStr = dateStr.substr(0, 13) + ':' + dateStr.substr(13,2) + ':' + dateStr.substr(15);
+
+  return new Date(dateStr);
+}
+
+function downloadSnapshot() {
+  http.get(CONFIG.CAMERA_URL, function(response) {
+    var now = new Date();
+    var filePath = path.join(CONFIG.ARCHIVE_DIR, generateFileName(now));
+    var file = fs.createWriteStream(filePath);
+
+    response.pipe(file);
+
+    file.on('finish', function() { file.close(); });
+  });
+}
+
+function deleteOldImages() {
+  var now = new Date();
+  var earliestDateToKeep = now.setDate(now.getDate() - CONFIG.NUM_DAYS_ARCHIVE);
+
+  generateSnapshotList(function(snapshots) {
+    snapshots.forEach(function(file) {
+      if (file.time < earliestDateToKeep) {
+        fs.unlink(path.join(CONFIG.ARCHIVE_DIR, file.image));
+      }
+    });
+  });
+}
+
+// TODO: This could be cached and updated only when new files arrive
+//       rather than every page load.
 function generateSnapshotList(callback) {
   // get the list of snapshot files
   fs.readdir(CONFIG.ARCHIVE_DIR, function(err, files) {
     if (err) throw new Error('Error reading snapshot directory!');
 
-    var images = files.filter(function(fname) {
-      return fname.substr(fname.length - 3) === 'jpg';
+    var images = [];
+    files.forEach(function(fname) {
+      if (fname.substr(fname.length - 3) !== 'jpg') return;
+
+      // use the filenames timestamp
+      images.push({
+        image: fname,
+        time: filenameToDate(fname).getTime()
+      });
     });
 
-    // get the modify time of each snapshot
-    var addModifyTime = function(image, callback) {
-      fs.stat(CONFIG.ARCHIVE_DIR + '/' + image, function(err, stat) {
-        var result = { image: image, time: stat.mtime.getTime() };
-        callback(err, result);
-      });
-    };
-    async.map(images, addModifyTime, function(err, results) {
-      // sort the snapshots chronological
-      var sortedFiles = results.sort(function(a,b) {
-        return b.time - a.time;
-      });
-
-      callback(JSON.stringify(sortedFiles));
+    // sort the snapshots chronological
+    var sortedFiles = images.sort(function(a,b) {
+      return b.time - a.time;
     });
+
+    callback(sortedFiles);
   });
 }
 
-function buildIndex(json) {
+//-----------------------------------------------------------------------------
+// Main Page
+//-----------------------------------------------------------------------------
+function buildIndex(snapshotList) {
   var html =
   '<!doctype html>' +
   '<html>' +
@@ -80,7 +121,7 @@ function buildIndex(json) {
     '<script src="js/jquery-1.10.1.min.js"></script>' +
     '<script src="js/bootstrap-datepicker-20130809.js"></script>' +
     '<script src="js/index.js"></script>' +
-    '<script>window.APP.setSnapshotList(' + json + ');</script>' +
+    '<script>window.APP.setSnapshotList(' + JSON.stringify(snapshotList) + ');</script>' +
   '</body>' +
   '</html>';
 
@@ -99,8 +140,8 @@ app.use(express.compress());
 // Page Routes
 //-----------------------------------------------------------------------------
 app.get('/', function(req, res) {
-  generateSnapshotList(function(json) {
-    res.send(buildIndex(json));
+  generateSnapshotList(function(snapshotList) {
+    res.send(buildIndex(snapshotList));
   });
 });
 
@@ -118,9 +159,17 @@ app.use(function(req, res) {
   res.send(404);
 });
 
-
 //-----------------------------------------------------------------------------
 // App Startup
 //-----------------------------------------------------------------------------
+// start polling camera
+downloadSnapshot();
+setInterval(downloadSnapshot, CONFIG.POLL_INTERVAL * 1000);
+
+// delete old images once an hour
+deleteOldImages();
+setInterval(deleteOldImages, 60 * 60 * 1000);
+
+// start web server
 app.listen(CONFIG.PORT);
 console.log('Listening on port ' + CONFIG.PORT);
