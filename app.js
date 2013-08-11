@@ -107,7 +107,7 @@ function buildIndex(snapshotList) {
     '<div id="bodyContainer">' +
       '<h1 id="imageDateTime">Loading...</h1>' +
       '<div id="imageContainer">' +
-        '<img id="currentSnapshot" src="#" alt="camera snapshot" />' +
+        '<img id="currentSnapshot" src="' + snapshotList[0].image + '" alt="camera snapshot" />' +
         '<div id="controls">' +
           '<button id="earlier" class="btn btn-large">&laquo Earlier</button>' +
           '<button id="later" class="btn btn-large">Later &raquo</button>' +
