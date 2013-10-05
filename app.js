@@ -41,6 +41,9 @@ function downloadSnapshot() {
     response.pipe(file);
 
     file.on('finish', function() { file.close(); });
+  })
+  .on('error', function(e) {
+    console.log('Error downloading snapshot: ' + e.message);
   });
 }
 
