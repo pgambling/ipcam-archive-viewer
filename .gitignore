@@ -4,4 +4,6 @@ config.json
 .DS_Store
 ._*
 00_publish
+target
+public/js/app.js
 test_archive
