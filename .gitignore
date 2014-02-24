@@ -4,3 +4,4 @@ config.json
 .DS_Store
 ._*
 00_publish
+test_archive
