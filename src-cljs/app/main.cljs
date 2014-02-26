@@ -9,7 +9,8 @@
 ;;------------------------------------------------------------------------------
 
 (def snapshot-list (atom nil))
-(def current-index (atom nil))
+(def snapshot-index (atom nil)) ; can this be derived from current time, quickly?
+(def selected-time (atom nil))
 (def url-update-timout (atom nil)) ; This probably doesn't need to be atom, maybe be clojure feature that handles this
 
 ;;------------------------------------------------------------------------------
@@ -53,6 +54,37 @@
         [:td (build-decrement-btn "decrement-minute")]
         (build-nbsp-cell)
         [:td (build-decrement-btn "toggle-meridian")]]]]])
+
+(defn pad [num]
+  "zero pad timepicker digits"
+  (format "%02d" num))
+
+;;------------------------------------------------------------------------------
+;; Watchers
+;;------------------------------------------------------------------------------
+
+(defn on-snapshot-index-change [_ _ _ new-index]
+  (let [snapshot (@snapshot-list new-index)
+        time (Date. (:time snapshot))
+        image (:image snapshot)
+        time-display (str (.toDateString time) " " (.toLocaleTimeString time))]
+    (attr ($ "#currentSnapshot") "src" image)
+    (text ($ "#imageDateTime") time-display)
+    (prop ($ "#earlier") "disabled" (= (inc new-index) (count @snapshot-list)))
+    (prop ($ "#later") "disabled" (zero? new-index))))
+
+(add-watch snapshot-index :_ on-snapshot-index-change)
+
+(defn on-selected-time-change [_ _ _ new-time]
+  (let [hour (.getHours new-time)
+        meridian (if (> 11 hour) "PM" "AM")
+        hour (if (> 12 hour) (- hour 12) hour)]
+    (val ($ "#hour") (pad hour))
+    (val ($ "#minute") (pad (.getMinutes new-time)))
+    (val ($ "#meridian") meridian)
+    (.datepicker ($ "#datepicker") "update" new-time)))
+
+(add-watch timestamp :_ on-selected-time-change)
 
 ;;------------------------------------------------------------------------------
 ;; Events
@@ -105,10 +137,10 @@
       (js->clj)
       (clojure.walk/keywordize-keys)))))
 
-(defn init-current-index []
+(defn init-snapshot-index []
   (let [image (attr ($ "#currentSnapshot") "src")
-        starting-index (first (keep-indexed #(if (= image %2) %1) @snapshot-list))]
-    (swap! current-index #(if (pos? starting-index)
+        starting-index (first (keep-indexed #(if (= image (:image %2)) %1) @snapshot-list))]
+    (swap! snapshot-index #(if (pos? starting-index)
                                 starting-index
                                 0))))
 
@@ -116,7 +148,7 @@
   (init-datepicker)
   (init-timepicker) ; seperate namespace?
   (init-snapshot-list)
-  (init-current-index) ; current-index change is probably what replaces original update
+  (init-snapshot-index) ; current-index change is probably what replaces original update
   (add-events))
 
 (document-ready init)
