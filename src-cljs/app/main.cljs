@@ -59,6 +59,21 @@
   "zero pad timepicker digits"
   (format "%02d" num))
 
+(defn get-hours []
+  (.getHours @selected-time))
+
+(defn get-minutes p[]
+  (.getMinutes @selected-time))
+
+(defn set-hours! [new-hours]
+  (swap! selected-time doto (.setHours new-hours)))
+
+(defn set-minutes! [new-mins]
+  (swap! selected-time doto (.setMinutes new-mins)))
+
+(defn sync-time-with-snapshot! []
+  (swap! selected-time #(js/Date. (:time @snapshot-index))))
+
 ;;------------------------------------------------------------------------------
 ;; Watchers
 ;;------------------------------------------------------------------------------
@@ -90,31 +105,59 @@
 ;; Events
 ;;------------------------------------------------------------------------------
 
-(defn on-popstate [])
-(defn on-datetime-change [])
-(defn on-keydown [])
+(defn on-popstate! [])
 
-(defn click-toggle-meridian [])
-(defn click-decremen-hour [])
-(defn click-increment-hour [])
-(defn click-decrement-Minute [])
-(defn click-increment-minute [])
-(defn click-later [])
-(defn click-earlier [])
+(defn on-datetime-change! []
+  ); todo
+
+(defn on-keydown! [e]
+  (let [key (.-which e)]
+    (cond
+      (= key 37) (click-earlier!)
+      (= key 39) (click-later!))))
+
+(defn click-toggle-meridian! []
+  (let [hours (+ (get-hours) 12)
+        hours (if (>= 24 ) (- 24 hours) hours)]
+    (set-hours! hours)))
+
+(defn click-decrement-hour! []
+  (set-hours! (dec (get-hours))))
+
+(defn click-increment-hour! []
+  (set-hours! (inc (get-hours))))
+
+(defn click-decrement-Minute! []
+  (set-minutes! (dec (get-minutes))))
+
+(defn click-increment-minute! []
+  (set-minutes! (inc (get-minutes)))))
+
+(defn click-later! []
+  (if (pos? @snapshot-index)
+    (do
+      (swap! snapshot-index dec)
+      (sync-time-with-snapshot!))))
+
+(defn click-earlier! []
+  (if (>= @snapshot-index (count @snapshot-list))
+    (do
+      (swap! snapshot-index inc)
+      (sync-time-with-snapshot!))))
 
 (defn add-events []
-  (aset js/window "onpopstate" on-popstate)
-  (on ($ "datepicker") "changeDate" on-datetime-change)
-  (on ($ js/document) "keydown" on-keydown)
+  (aset js/window "onpopstate" on-popstate!)
+  (on ($ "datepicker") "changeDate" on-datetime-change!)
+  (on ($ js/document) "keydown" on-keydown!)
 
   (-> ($ "body")
-    (on "click" ".toggle-meridian" click-toggle-meridian)
-    (on "click" ".decrement-hour" click-decremen-hour)
-    (on "click" ".increment-hour" click-increment-hour)
-    (on "click" ".decrement-minute" click-decrement-Minute)
-    (on "click" ".increment-minute" click-increment-minute)
-    (on "click" "#later" click-later)
-    (on "click" "#earlier" click-earlier)))
+    (on "click" ".toggle-meridian" click-toggle-meridian!)
+    (on "click" ".decrement-hour" click-decremen-hour!)
+    (on "click" ".increment-hour" click-increment-hour!)
+    (on "click" ".decrement-minute" click-decrement-Minute!)
+    (on "click" ".increment-minute" click-increment-minute!)
+    (on "click" "#later" click-later!)
+    (on "click" "#earlier" click-earlier!)))
 
 ;;------------------------------------------------------------------------------
 ;; App Init
