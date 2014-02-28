@@ -1,8 +1,9 @@
 (ns app.main
+  (:use [jayq.core :only
+    [$ document-ready html on attr prop text val]])
   (:require-macros [hiccups.core :as hiccups])
   (:require
-    [hiccups.runtime :as hiccupsrt])
-  (:use [jayq.core :only [$ document-ready html on attr prop text]]))
+    [hiccups.runtime :as hiccupsrt]))
 
 ;;------------------------------------------------------------------------------
 ;; Atoms
@@ -62,34 +63,34 @@
 (defn get-hours []
   (.getHours @selected-time))
 
-(defn get-minutes p[]
+(defn get-minutes []
   (.getMinutes @selected-time))
 
 (defn set-hours! [new-hours]
-  (swap! selected-time doto (.setHours new-hours)))
+  (swap! selected-time #(doto % .setHours new-hours)))
 
 (defn set-minutes! [new-mins]
-  (swap! selected-time doto (.setMinutes new-mins)))
+  (swap! selected-time #(doto % .setMinutes new-mins)))
 
 (defn sync-time-with-snapshot! []
   (swap! selected-time #(js/Date. (:time @snapshot-index))))
 
 ; TODO: This could be improved. Probably need to rethink my data model
 (defn show-closest-snapshot! []
-  (let [timestamp (.getTime @selected-time)]
+  (let [timestamp (.getTime @selected-time)
         earlier-index (keep-indexed #(if (>= timestamp (:time %2)) %1) @snapshot-list)
         later-index (dec earlier-index)
         later (:time (@snapshot-list later-index))
         earlier (:time (@snapshot-list earlier-index))
         display-index (if (< (- later timestamp) (- timestamp earlier))
                         later-index
-                        earlier-index))
-    (swap! selected-index #(display-index)))
+                        earlier-index)]
+    (swap! snapshot-index #(display-index))))
 
 (defn set-url! [timestamp]
   (let [base-url (.split js/document.URL "?")
-        new-url (str base-url "?time=" timestamp)])
-    (.replaceState js/history nil nil new-url))
+        new-url (str base-url "?time=" timestamp)]
+    (.replaceState js/history nil nil new-url)))
 
 ;;------------------------------------------------------------------------------
 ;; Watchers
@@ -104,11 +105,11 @@
     (val ($ "#meridian") meridian)
     (.datepicker ($ "#datepicker") "update" new-time)))
 
-(add-watch timestamp :_ on-selected-time-change)
+(add-watch selected-time :_ on-selected-time-change)
 
 (defn on-snapshot-index-change [_ _ _ new-index]
   (let [snapshot (@snapshot-list new-index)
-        time (Date. (:time snapshot))
+        time (js/Date. (:time snapshot))
         image (:image snapshot)
         time-display (str (.toDateString time) " " (.toLocaleTimeString time))]
     (attr ($ "#currentSnapshot") "src" image)
@@ -117,7 +118,7 @@
     (prop ($ "#later") "disabled" (zero? new-index))
     ; delay updating the url in case user is rapidly switching times
     (js/clearTimeout @url-update-timeout)
-    (swap! url-update-timeout #(js/setTimeout set-url time 200))))
+    (swap! url-update-timeout #(js/setTimeout set-url! time 200))))
 
 (add-watch snapshot-index :_ on-snapshot-index-change)
 
@@ -135,12 +136,6 @@
                     (.setMinutes (.getMinutes @selected-time))
                     (.setHours (.getHours @selected-time)))]
     (swap! selected-time #(new-time))))
-
-(defn on-keydown [e]
-  (let [key (.-which e)]
-    (cond
-      (= key 37) (click-earlier)
-      (= key 39) (click-later))))
 
 (defn click-toggle-meridian []
   (let [hours (+ (get-hours) 12)
@@ -162,7 +157,7 @@
 
 (defn click-increment-minute []
   (set-minutes! (inc (get-minutes)))
-  (show-closest-snapshot!)))
+  (show-closest-snapshot!))
 
 (defn click-later []
   (if (pos? @snapshot-index)
@@ -176,6 +171,12 @@
       (swap! snapshot-index inc)
       (sync-time-with-snapshot!))))
 
+(defn on-keydown [e]
+  (let [key (.-which e)]
+    (cond
+      (= key 37) (click-earlier)
+      (= key 39) (click-later))))
+
 (defn add-events []
   (aset js/window "onpopstate" on-popstate)
   (on ($ "datepicker") "changeDate" on-datetime-change)
@@ -183,7 +184,7 @@
 
   (-> ($ "body")
     (on "click" ".toggle-meridian" click-toggle-meridian)
-    (on "click" ".decrement-hour" click-decremen-hour)
+    (on "click" ".decrement-hour" click-decrement-hour)
     (on "click" ".increment-hour" click-increment-hour)
     (on "click" ".decrement-minute" click-decrement-Minute)
     (on "click" ".increment-minute" click-increment-minute)
@@ -207,7 +208,7 @@
 
 (defn init-snapshot-list []
   (swap! snapshot-list (fn []
-    (-> (.-SNAPSHOT_LIST APP) ; server injected to this in a <script>
+    (-> (.-SNAPSHOT_LIST (.-APP js/window)) ; server injected to this in a <script>
       (js->clj)
       (clojure.walk/keywordize-keys)))))
 

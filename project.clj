@@ -4,7 +4,7 @@
 
   :dependencies [
     [org.clojure/clojure "1.5.1"]
-    [org.clojure/clojurescript "0.0-2173"
+    [org.clojure/clojurescript "0.0-2127"
       :exclusions [org.apache.ant/ant]]
     [jayq "2.5.0"]
     [hiccups "0.3.0"]]
