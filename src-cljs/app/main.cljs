@@ -57,7 +57,7 @@
 
 (defn pad [num]
   "zero pad timepicker digits"
-  (format "%02d" num))
+  (goog.string/format "%02d" num))
 
 (defn get-hours []
   (.getHours @selected-time))
