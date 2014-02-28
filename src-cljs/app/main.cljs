@@ -8,9 +8,10 @@
 ;; Atoms
 ;;------------------------------------------------------------------------------
 
-(def snapshots (atom nil))
+(def snapshot-list (atom nil))
+(def snapshot-index (atom nil)) ; can this be derived from current time, quickly?
 (def selected-time (atom nil))
-(def url-update-timout (atom nil)) ; This probably doesn't need to be atom, maybe be clojure feature that handles this
+(def url-update-timeout (atom nil)) ; This probably doesn't need to be atom, maybe be clojure feature that handles this
 
 ;;------------------------------------------------------------------------------
 ;; Timepicker
@@ -70,16 +71,30 @@
 (defn set-minutes! [new-mins]
   (swap! selected-time doto (.setMinutes new-mins)))
 
-(defn use-index-time! [index]
-  (swap! selected-time #(-> (@snapshot-list index) :time Date.)))
+(defn sync-time-with-snapshot! []
+  (swap! selected-time #(js/Date. (:time @snapshot-index))))
+
+; TODO: This could be improved. Probably need to rethink my data model
+(defn show-closest-snapshot! []
+  (let [timestamp (.getTime @selected-time)]
+        earlier-index (keep-indexed #(if (>= timestamp (:time %2)) %1) @snapshot-list)
+        later-index (dec earlier-index)
+        later (:time (@snapshot-list later-index))
+        earlier (:time (@snapshot-list earlier-index))
+        display-index (if (< (- later timestamp) (- timestamp earlier))
+                        later-index
+                        earlier-index))
+    (swap! selected-index #(display-index)))
+
+(defn set-url! [timestamp]
+  (let [base-url (.split js/document.URL "?")
+        new-url (str base-url "?time=" timestamp)])
+    (.replaceState js/history nil nil new-url))
 
 ;;------------------------------------------------------------------------------
 ;; Watchers
 ;;------------------------------------------------------------------------------
 
-(defn )
-
-; TODO: Find closest index
 (defn on-selected-time-change [_ _ _ new-time]
   (let [hour (.getHours new-time)
         meridian (if (> 11 hour) "PM" "AM")
@@ -87,20 +102,24 @@
     (val ($ "#hour") (pad hour))
     (val ($ "#minute") (pad (.getMinutes new-time)))
     (val ($ "#meridian") meridian)
-    (.datepicker ($ "#datepicker") "update" new-time))
-    )
-; CONTINUE HERE - REWORKING snapshots, selected-time atom
+    (.datepicker ($ "#datepicker") "update" new-time)))
 
-  (let [snapshot (@snapshots new-index)
+(add-watch timestamp :_ on-selected-time-change)
+
+(defn on-snapshot-index-change [_ _ _ new-index]
+  (let [snapshot (@snapshot-list new-index)
         time (Date. (:time snapshot))
         image (:image snapshot)
         time-display (str (.toDateString time) " " (.toLocaleTimeString time))]
     (attr ($ "#currentSnapshot") "src" image)
     (text ($ "#imageDateTime") time-display)
     (prop ($ "#earlier") "disabled" (= (inc new-index) (count @snapshot-list)))
-    (prop ($ "#later") "disabled" (zero? new-index))))
+    (prop ($ "#later") "disabled" (zero? new-index))
+    ; delay updating the url in case user is rapidly switching times
+    (js/clearTimeout @url-update-timeout)
+    (swap! url-update-timeout #(js/setTimeout set-url time 200))))
 
-(add-watch timestamp :_ on-selected-time-change)
+(add-watch snapshot-index :_ on-snapshot-index-change)
 
 ;;------------------------------------------------------------------------------
 ;; Events
@@ -126,27 +145,36 @@
 (defn click-toggle-meridian []
   (let [hours (+ (get-hours) 12)
         hours (if (>= 24 ) (- 24 hours) hours)]
-    (set-hours! hours)))
+    (set-hours! hours)
+    (show-closest-snapshot!)))
 
 (defn click-decrement-hour []
-  (set-hours! (dec (get-hours))))
+  (set-hours! (dec (get-hours)))
+  (show-closest-snapshot!))
 
 (defn click-increment-hour []
-  (set-hours! (inc (get-hours))))
+  (set-hours! (inc (get-hours)))
+  (show-closest-snapshot!))
 
 (defn click-decrement-Minute []
-  (set-minutes! (dec (get-minutes))))
+  (set-minutes! (dec (get-minutes)))
+  (show-closest-snapshot!))
 
 (defn click-increment-minute []
-  (set-minutes! (inc (get-minutes)))))
+  (set-minutes! (inc (get-minutes)))
+  (show-closest-snapshot!)))
 
 (defn click-later []
   (if (pos? @snapshot-index)
-    (use-index-time! (dec @snapshot-index))))
+    (do
+      (swap! snapshot-index dec)
+      (sync-time-with-snapshot!))))
 
 (defn click-earlier []
-  (if (>= @snapshot-index (count @snapshot-list)
-    (use-index-time! (inc @snapshot-index)))))
+  (if (>= @snapshot-index (count @snapshot-list))
+    (do
+      (swap! snapshot-index inc)
+      (sync-time-with-snapshot!))))
 
 (defn add-events []
   (aset js/window "onpopstate" on-popstate)
