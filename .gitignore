@@ -5,5 +5,5 @@ config.json
 ._*
 00_publish
 target
-public/js/app.js
+public/js/out
 test_archive

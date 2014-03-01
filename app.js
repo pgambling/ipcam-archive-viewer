@@ -122,10 +122,10 @@ function buildIndex(initialImage, snapshotList) {
         '<div id="timepickerContainer"></div>' +
       '</div>' +
     '</div>' +
-    '<script src="js/jquery-1.10.1.min.js"></script>' +
-    '<script src="js/bootstrap-datepicker-20130809.js"></script>' +
+    '<script src="js/libs/jquery-1.10.1.min.js"></script>' +
+    '<script src="js/libs/bootstrap-datepicker-20130809.js"></script>' +
     '<script>window.SNAPSHOT_LIST =' + JSON.stringify(snapshotList) + ';</script>' +
-    '<script src="js/app.js"></script>' +
+    '<script src="js/out/app.js"></script>' +
   '</body>' +
   '</html>';
 

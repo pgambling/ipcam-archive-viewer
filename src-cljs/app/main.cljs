@@ -3,7 +3,8 @@
     [$ document-ready html on attr prop text val]])
   (:require-macros [hiccups.core :as hiccups])
   (:require
-    [hiccups.runtime :as hiccupsrt]))
+    [hiccups.runtime :as hiccupsrt]
+    [clojure.walk]))
 
 ;;------------------------------------------------------------------------------
 ;; Atoms
@@ -95,6 +96,18 @@
 ;;------------------------------------------------------------------------------
 ;; Watchers
 ;;------------------------------------------------------------------------------
+
+(defn on-snapshot-list-change [_ _ _ snapshot-list]
+  (let [start-date (js/Date. (:time (last snapshot-list)))
+        end-date (js/Date. (:time (first snapshot-list)))
+        datepicker-el ($ "#datePicker")]
+    (.datepicker datepicker-el "remove")
+    (.datepicker datepicker-el
+      (js-obj
+        "startDate" start-date
+        "endDate" end-date))))
+
+(add-watch selected-time :_ on-snapshot-list-change)
 
 (defn on-selected-time-change [_ _ _ new-time]
   (let [hour (.getHours new-time)
@@ -195,17 +208,6 @@
 ;; App Init
 ;;------------------------------------------------------------------------------
 
-(defn init-datepicker []
-  (let [start-date (js/Date. (:time (last @snapshot-list)))
-        end-date (js/Date. (:time (first @snapshot-list)))]
-    (.datepicker ($ "#datePicker")
-      (js-obj
-        "startDate" start-date
-        "endDate" end-date))))
-
-(defn init-timepicker []
-  (html ($ "timepickerContainer") (build-timepicker)))
-
 (defn init-snapshot-list []
   (swap! snapshot-list (fn []
     (-> (.-SNAPSHOT_LIST js/window) ; server injected to this in a <script>
@@ -220,10 +222,10 @@
                                 0))))
 
 (defn init []
-  (init-datepicker)
-  (init-timepicker) ; seperate namespace?
+  (html ($ "timepickerContainer") (build-timepicker))
   (init-snapshot-list)
-  (init-snapshot-index) ; current-index change is probably what replaces original update
+  (init-snapshot-index)
+  (sync-time-with-snapshot!)
   (add-events))
 
 (document-ready init)

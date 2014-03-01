@@ -16,7 +16,9 @@
     :builds [{
       :source-paths ["src-cljs"]
       :compiler {
-        :output-to "public/js/app.js"
-        :optimizations :advanced
+        :output-dir "public/js/out"
+        :output-to "public/js/out/app.js"
+        :optimizations :whitespace
         :pretty-print true
+        :source-map "public/js/out/app.js.map"
         :externs ["externs/jquery-1.9.js"]}}]})
