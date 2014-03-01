@@ -124,7 +124,7 @@ function buildIndex(initialImage, snapshotList) {
     '</div>' +
     '<script src="js/jquery-1.10.1.min.js"></script>' +
     '<script src="js/bootstrap-datepicker-20130809.js"></script>' +
-    '<script>window.APP.SNAPSHOT_LIST =' + JSON.stringify(snapshotList) + ';</script>' +
+    '<script>window.SNAPSHOT_LIST =' + JSON.stringify(snapshotList) + ';</script>' +
     '<script src="js/index.js"></script>' +
   '</body>' +
   '</html>';
