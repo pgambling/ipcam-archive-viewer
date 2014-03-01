@@ -208,7 +208,7 @@
 
 (defn init-snapshot-list []
   (swap! snapshot-list (fn []
-    (-> (.-SNAPSHOT_LIST (.-APP js/window)) ; server injected to this in a <script>
+    (-> (.-SNAPSHOT_LIST js/window) ; server injected to this in a <script>
       (js->clj)
       (clojure.walk/keywordize-keys)))))
 
