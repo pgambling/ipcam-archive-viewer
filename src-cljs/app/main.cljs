@@ -4,7 +4,11 @@
   (:require-macros [hiccups.core :as hiccups])
   (:require
     [hiccups.runtime :as hiccupsrt]
-    [clojure.walk]))
+    [clojure.walk]
+    [goog.string]
+    [goog.string.format]))
+
+(enable-console-print!)
 
 ;;------------------------------------------------------------------------------
 ;; Atoms
@@ -68,25 +72,25 @@
   (.getMinutes @selected-time))
 
 (defn set-hours! [new-hours]
-  (swap! selected-time #(doto % .setHours new-hours)))
+  (swap! selected-time #(doto % (.setHours new-hours))))
 
 (defn set-minutes! [new-mins]
-  (swap! selected-time #(doto % .setMinutes new-mins)))
+  (swap! selected-time #(doto % (.setMinutes new-mins))))
 
 (defn sync-time-with-snapshot! []
-  (swap! selected-time #(js/Date. (:time @snapshot-index))))
+  (reset! selected-time (js/Date. (:time (@snapshot-list @snapshot-index)))))
 
 ; TODO: This could be improved. Probably need to rethink my data model
 (defn show-closest-snapshot! []
   (let [timestamp (.getTime @selected-time)
-        earlier-index (keep-indexed #(if (>= timestamp (:time %2)) %1) @snapshot-list)
-        later-index (dec earlier-index)
+        earlier-index (first (keep-indexed #(if (>= timestamp (:time %2)) %1) @snapshot-list))
+        later-index (max (dec earlier-index) 0)
         later (:time (@snapshot-list later-index))
         earlier (:time (@snapshot-list earlier-index))
         display-index (if (< (- later timestamp) (- timestamp earlier))
                         later-index
                         earlier-index)]
-    (swap! snapshot-index #(display-index))))
+    (reset! snapshot-index display-index)))
 
 (defn set-url! [timestamp]
   (let [base-url (.split js/document.URL "?")
@@ -141,14 +145,14 @@
 
 (defn on-popstate [e]
   (if (.-state e)
-    (swap! selected-time #(.-time e))))
+    (reset! selected-time (.-time e))))
 
 (defn on-datetime-change []
   (let [date (.datepicker ($ "#datepicker") "getDate")
         new-time (doto date
                     (.setMinutes (.getMinutes @selected-time))
                     (.setHours (.getHours @selected-time)))]
-    (swap! selected-time #(new-time))))
+    (reset! selected-time new-time)))
 
 (defn click-toggle-meridian []
   (let [hours (+ (get-hours) 12)
@@ -179,7 +183,7 @@
       (sync-time-with-snapshot!))))
 
 (defn click-earlier []
-  (if (>= @snapshot-index (count @snapshot-list))
+  (if (< @snapshot-index (count @snapshot-list))
     (do
       (swap! snapshot-index inc)
       (sync-time-with-snapshot!))))
@@ -192,7 +196,7 @@
 
 (defn add-events []
   (aset js/window "onpopstate" on-popstate)
-  (on ($ "datepicker") "changeDate" on-datetime-change)
+  (on ($ "#datepicker") "changeDate" on-datetime-change)
   (on ($ js/document) "keydown" on-keydown)
 
   (-> ($ "body")
@@ -209,20 +213,21 @@
 ;;------------------------------------------------------------------------------
 
 (defn init-snapshot-list []
-  (swap! snapshot-list (fn []
-    (-> (.-SNAPSHOT_LIST js/window) ; server injected to this in a <script>
-      (js->clj)
-      (clojure.walk/keywordize-keys)))))
+  (->> (.-SNAPSHOT_LIST js/window) ; server injected to this in a <script>
+        (js->clj)
+        (clojure.walk/keywordize-keys)
+        (reset! snapshot-list)))
 
 (defn init-snapshot-index []
   (let [image (attr ($ "#currentSnapshot") "src")
         starting-index (first (keep-indexed #(if (= image (:image %2)) %1) @snapshot-list))]
-    (swap! snapshot-index #(if (pos? starting-index)
-                                starting-index
-                                0))))
+    (reset! snapshot-index
+      (if (pos? starting-index)
+        starting-index
+        0))))
 
 (defn init []
-  (html ($ "timepickerContainer") (build-timepicker))
+  (html ($ "#timepickerContainer") (build-timepicker))
   (init-snapshot-list)
   (init-snapshot-index)
   (sync-time-with-snapshot!)
