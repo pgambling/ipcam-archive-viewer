@@ -65,24 +65,18 @@
   "zero pad timepicker digits"
   (goog.string/format "%02d" num))
 
-(defn get-hours []
-  (.getHours @selected-time))
+(defn minutes-to-ms [mins]
+  (* mins 60000))
 
-(defn get-minutes []
-  (.getMinutes @selected-time))
-
-(defn set-hours! [new-hours]
-  (swap! selected-time #(doto % (.setHours new-hours))))
-
-(defn set-minutes! [new-mins]
-  (swap! selected-time #(doto % (.setMinutes new-mins))))
+(defn hours-to-ms [hours]
+  (* hours 3600000))
 
 (defn sync-time-with-snapshot! []
-  (reset! selected-time (js/Date. (:time (@snapshot-list @snapshot-index)))))
+  (reset! selected-time (:time (@snapshot-list @snapshot-index))))
 
 ; TODO: This could be improved. Probably need to rethink my data model
 (defn show-closest-snapshot! []
-  (let [timestamp (.getTime @selected-time)
+  (let [timestamp @selected-time
         earlier-index (first (keep-indexed #(if (>= timestamp (:time %2)) %1) @snapshot-list))
         later-index (max (dec earlier-index) 0)
         later (:time (@snapshot-list later-index))
@@ -93,7 +87,7 @@
     (reset! snapshot-index display-index)))
 
 (defn set-url! [timestamp]
-  (let [base-url (.split js/document.URL "?")
+  (let [base-url (first (.split js/document.URL "?"))
         new-url (str base-url "?time=" timestamp)]
     (.replaceState js/history nil nil new-url)))
 
@@ -104,38 +98,42 @@
 (defn on-snapshot-list-change [_ _ _ snapshot-list]
   (let [start-date (js/Date. (:time (last snapshot-list)))
         end-date (js/Date. (:time (first snapshot-list)))
-        datepicker-el ($ "#datePicker")]
+        datepicker-el ($ "#datepicker")]
     (.datepicker datepicker-el "remove")
     (.datepicker datepicker-el
       (js-obj
         "startDate" start-date
         "endDate" end-date))))
 
-(add-watch selected-time :_ on-snapshot-list-change)
+(add-watch snapshot-list :_ on-snapshot-list-change)
 
 (defn on-selected-time-change [_ _ _ new-time]
-  (let [hour (.getHours new-time)
-        meridian (if (> 11 hour) "PM" "AM")
-        hour (if (> 12 hour) (- hour 12) hour)]
+  (let [datetime (js/Date. new-time)
+        hour (.getHours datetime)
+        meridian (if (>= hour 12) "PM" "AM")
+        hour (if (> hour 12) (- hour 12) hour)
+        hour (if (and (= meridian "AM") (= hour 0)) 12 hour)]
     (val ($ "#hour") (pad hour))
-    (val ($ "#minute") (pad (.getMinutes new-time)))
+    (val ($ "#minute") (pad (.getMinutes datetime)))
     (val ($ "#meridian") meridian)
-    (.datepicker ($ "#datepicker") "update" new-time)))
+    (println (.toString datetime))
+    (.datepicker ($ "#datepicker") "update" datetime)))
 
 (add-watch selected-time :_ on-selected-time-change)
 
 (defn on-snapshot-index-change [_ _ _ new-index]
   (let [snapshot (@snapshot-list new-index)
-        time (js/Date. (:time snapshot))
+        timestamp (:time snapshot)
+        datetime (js/Date. timestamp)
         image (:image snapshot)
-        time-display (str (.toDateString time) " " (.toLocaleTimeString time))]
+        time-display (str (.toDateString datetime) " " (.toLocaleTimeString datetime))]
     (attr ($ "#currentSnapshot") "src" image)
     (text ($ "#imageDateTime") time-display)
     (prop ($ "#earlier") "disabled" (= (inc new-index) (count @snapshot-list)))
     (prop ($ "#later") "disabled" (zero? new-index))
     ; delay updating the url in case user is rapidly switching times
     (js/clearTimeout @url-update-timeout)
-    (swap! url-update-timeout #(js/setTimeout set-url! time 200))))
+    (reset! url-update-timeout (js/setTimeout (fn [] (set-url! timestamp)) 200))))
 
 (add-watch snapshot-index :_ on-snapshot-index-change)
 
@@ -148,32 +146,35 @@
     (reset! selected-time (.-time e))))
 
 (defn on-datetime-change []
-  (let [date (.datepicker ($ "#datepicker") "getDate")
-        new-time (doto date
-                    (.setMinutes (.getMinutes @selected-time))
-                    (.setHours (.getHours @selected-time)))]
-    (reset! selected-time new-time)))
+  (let [selected-date (.datepicker ($ "#datepicker") "getDate")
+        datetime (js/Date. @selected-time)
+        new-time (doto selected-date
+                    (.setMinutes (.getMinutes datetime))
+                    (.setHours (.getHours datetime)))]
+    (println (.toString new-time))
+    (reset! selected-time (.getTime new-time))
+    (show-closest-snapshot!)))
 
 (defn click-toggle-meridian []
-  (let [hours (+ (get-hours) 12)
-        hours (if (>= 24 ) (- 24 hours) hours)]
-    (set-hours! hours)
+  (let [meridian (val ($ "#meridian"))
+        hours (if (= meridian "AM") 12 -12)]
+    (swap! selected-time + (hours-to-ms hours))
     (show-closest-snapshot!)))
 
 (defn click-decrement-hour []
-  (set-hours! (dec (get-hours)))
+  (swap! selected-time - (hours-to-ms 1))
   (show-closest-snapshot!))
 
 (defn click-increment-hour []
-  (set-hours! (inc (get-hours)))
+  (swap! selected-time + (hours-to-ms 1))
   (show-closest-snapshot!))
 
 (defn click-decrement-Minute []
-  (set-minutes! (dec (get-minutes)))
+  (swap! selected-time - (minutes-to-ms 1))
   (show-closest-snapshot!))
 
 (defn click-increment-minute []
-  (set-minutes! (inc (get-minutes)))
+  (swap! selected-time + (minutes-to-ms 1))
   (show-closest-snapshot!))
 
 (defn click-later []
@@ -200,6 +201,7 @@
   (on ($ js/document) "keydown" on-keydown)
 
   (-> ($ "body")
+    (on "click" ".timepicker-widget a" (fn [e] (.preventDefault e)))
     (on "click" ".toggle-meridian" click-toggle-meridian)
     (on "click" ".decrement-hour" click-decrement-hour)
     (on "click" ".increment-hour" click-increment-hour)
@@ -214,9 +216,9 @@
 
 (defn init-snapshot-list []
   (->> (.-SNAPSHOT_LIST js/window) ; server injected to this in a <script>
-        (js->clj)
-        (clojure.walk/keywordize-keys)
-        (reset! snapshot-list)))
+       (js->clj)
+       (clojure.walk/keywordize-keys)
+       (reset! snapshot-list)))
 
 (defn init-snapshot-index []
   (let [image (attr ($ "#currentSnapshot") "src")
