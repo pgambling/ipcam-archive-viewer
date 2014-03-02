@@ -1,4 +1,4 @@
-(ns app.main
+(ns client
   (:use [jayq.core :only
     [$ document-ready html on attr prop text val]])
   (:require-macros [hiccups.core :as hiccups])

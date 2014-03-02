@@ -13,12 +13,18 @@
     [lein-cljsbuild "1.0.2"]]
 
   :cljsbuild {
-    :builds [{
-      :source-paths ["src-cljs"]
-      :compiler {
-        :output-dir "public/js/out"
-        :output-to "public/js/out/app.js"
-        :optimizations :whitespace
-        :pretty-print true
-        :source-map "public/js/out/app.js.map"
-        :externs ["externs/jquery-1.9.js"]}}]})
+    :builds {
+      :client {
+        :source-paths ["src-cljs/client"]
+        :compiler {
+          :output-dir "public/js/out"
+          :output-to "public/js/out/client.js"
+          :optimizations :advanced
+          :source-map "public/js/out/client.js.map"
+          :externs ["externs/jquery-1.9.js"]}}
+      :server {
+        :source-paths ["src-cljs/server"]
+        :compiler {
+          :target :nodejs
+          :output-to "server.js"
+          :optimizations :advanced}}}})
