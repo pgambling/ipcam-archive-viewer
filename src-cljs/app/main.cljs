@@ -116,7 +116,6 @@
     (val ($ "#hour") (pad hour))
     (val ($ "#minute") (pad (.getMinutes datetime)))
     (val ($ "#meridian") meridian)
-    (println (.toString datetime))
     (.datepicker ($ "#datepicker") "update" datetime)))
 
 (add-watch selected-time :_ on-selected-time-change)
@@ -151,7 +150,6 @@
         new-time (doto selected-date
                     (.setMinutes (.getMinutes datetime))
                     (.setHours (.getHours datetime)))]
-    (println (.toString new-time))
     (reset! selected-time (.getTime new-time))
     (show-closest-snapshot!)))
 
@@ -216,7 +214,7 @@
 
 (defn init-snapshot-list []
   (->> (.-SNAPSHOT_LIST js/window) ; server injected to this in a <script>
-       ; (js->clj)
+       ; (js->clj) ; TODO - Modify server to just send EDN and revert back to using native clojure types
        ; (clojure.walk/keywordize-keys)
        (reset! snapshot-list)))
 
