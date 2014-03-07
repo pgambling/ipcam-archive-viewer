@@ -78,7 +78,8 @@
       (filter older-than-earliest?)
       (map :image)
       (map delete-image)
-      doall)))
+      doall))
+  (generate-snapshot-list))
 
 (defn generate-snapshot-list []
   (.readdir fs (:archive-dir @config) (fn [err files]
