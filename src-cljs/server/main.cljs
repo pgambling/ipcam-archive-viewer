@@ -33,9 +33,9 @@
   (.error console msg))
 
 (def read-config []
-  (-> (js/require "./config.json")
-      (js->clj)
-      (clojure.walk/keywordize-keys)))
+  (-> (.readFileSync fs "./config.cljs")
+      (.toString)
+      (cljs.reader/read-string)))
 
 (defn generate-file-name [time]
   (-> time
