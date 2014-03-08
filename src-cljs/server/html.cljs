@@ -7,7 +7,7 @@
   [:head
    [:meta {:charset "utf-8"}]
    [:meta {:content "IE=edge,chrome=1", :http-equiv "X-UA-Compatible"}]
-   [:title (:title @config)]
+   [:title title]
    [:meta {:content "width=device-width", :name "viewport"}]
    "<!-- HTML5 shim, for IE6-8 support of HTML elements -->"
    "<!--[if lt IE 9]><script src=\"http://html5shim.googlecode.com/svn/trunk/html5.js\"></script><![endif]-->"
@@ -34,5 +34,5 @@
      [:div#timepickerContainer]]]
    [:script {:src "js/libs/jquery-1.10.1.min.js"}]
    [:script {:src "js/libs/bootstrap-datepicker-20130809.js"}]
-   [:script {:type "application/edn"} (pr-str @snapshot-list)]
+   [:script {:type "application/edn"} (pr-str snapshot-list)]
    [:script {:src "js/out/client.js"}]]])
