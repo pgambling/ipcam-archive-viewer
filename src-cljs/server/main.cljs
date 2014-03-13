@@ -1,6 +1,7 @@
 (ns server.main
   (:require
     [cljs.nodejs :as nodejs]
+    [cljs.reader]
     [clojure.walk]
     [clojure.string :as string]
     [server.html :as html]))
@@ -36,7 +37,12 @@
   (->> (.readFileSync fs "./config.cljs")
        (.toString)
        (cljs.reader/read-string)
-       (reset! config)))
+       (reset! config))
+  (let [file (.toString (.readFileSync fs "./config.cljs"))
+        file (.replace file (js/RegExp. "\\r|\\n" "g") "")
+        file (str "{:foo 1}")]
+    (.log js/console file)
+    (.log js/console (pr-str (cljs.reader/read-string "{:foo 1}")))))
 
 (defn generate-file-name [time]
   (-> time
@@ -116,9 +122,9 @@
 ;;------------------------------------------------------------------------------
 
 (defn -main [& args]
-  (when-not (.existsSync fs "./config.json")
-    (log-error "ERROR: config.json not found")
-    (log-error "HINT: Use example_config.json to start a new one.")
+  (when-not (.existsSync fs "./config.cljs")
+    (log-error "ERROR: config.cljs not found")
+    (log-error "HINT: Use example_config.cljs to start a new one.")
     (.exit js/process 1))
 
   (reset! config (read-config))
@@ -145,7 +151,5 @@
       (.use not-found)
       (.listen port)
       (println "Listening on port " port))))
-
-(nodejs/enable-util-print!)
 
 (set! *main-cli-fn* -main)

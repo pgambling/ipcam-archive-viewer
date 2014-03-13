@@ -5,6 +5,6 @@ config.cljs
 ._*
 00_publish
 target
-public/js/client
+public/js/out
 test_archive
 server.js

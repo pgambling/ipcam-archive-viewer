@@ -1,3 +1,3 @@
 #!/bin/sh
 
-supervisor --watch .,public --debug app.js
+supervisor --watch .,public --debug server.js

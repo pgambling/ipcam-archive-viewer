@@ -27,4 +27,4 @@
         :compiler {
           :target :nodejs
           :output-to "server.js"
-          :optimizations :advanced}}}})
+          :optimizations :simple}}}})

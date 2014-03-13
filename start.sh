@@ -1,3 +1,3 @@
 #!/bin/sh
 
-node app.js
+node server.js

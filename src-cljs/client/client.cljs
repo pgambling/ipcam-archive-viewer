@@ -5,6 +5,7 @@
   (:require
     [hiccups.runtime :as hiccupsrt]
     [clojure.walk]
+    [cljs.reader]
     [goog.string]
     [goog.string.format]))
 
@@ -72,15 +73,15 @@
   (* hours 3600000))
 
 (defn sync-time-with-snapshot! []
-  (reset! selected-time (.-time (nth @snapshot-list @snapshot-index))))
+  (reset! selected-time (:time (nth @snapshot-list @snapshot-index))))
 
 ; TODO: This could be improved. Probably need to rethink my data model
 (defn show-closest-snapshot! []
   (let [timestamp @selected-time
-        earlier-index (first (keep-indexed #(if (>= timestamp (.-time %2)) %1) @snapshot-list))
+        earlier-index (first (keep-indexed #(if (>= timestamp (:time %2)) %1) @snapshot-list))
         later-index (max (dec earlier-index) 0)
-        later (.-time (nth @snapshot-list later-index))
-        earlier (.-time (nth @snapshot-list earlier-index))
+        later (:time (nth @snapshot-list later-index))
+        earlier (:time (nth @snapshot-list earlier-index))
         display-index (if (< (- later timestamp) (- timestamp earlier))
                         later-index
                         earlier-index)]
@@ -96,8 +97,8 @@
 ;;------------------------------------------------------------------------------
 
 (defn on-snapshot-list-change [_ _ _ snapshot-list]
-  (let [start-date (js/Date. (.-time (last snapshot-list)))
-        end-date (js/Date. (.-time (first snapshot-list)))
+  (let [start-date (js/Date. (:time (last snapshot-list)))
+        end-date (js/Date. (:time (first snapshot-list)))
         datepicker-el ($ "#datepicker")]
     (.datepicker datepicker-el "remove")
     (.datepicker datepicker-el
@@ -122,9 +123,9 @@
 
 (defn on-snapshot-index-change [_ _ _ new-index]
   (let [snapshot (nth @snapshot-list new-index)
-        timestamp (.-time snapshot)
+        timestamp (:time snapshot)
         datetime (js/Date. timestamp)
-        image (.-image snapshot)
+        image (:image snapshot)
         time-display (str (.toDateString datetime) " " (.toLocaleTimeString datetime))]
     (attr ($ "#currentSnapshot") "src" image)
     (text ($ "#imageDateTime") time-display)
@@ -142,7 +143,7 @@
 
 (defn on-popstate [e]
   (if (.-state e)
-    (reset! selected-time (.-time e))))
+    (reset! selected-time (:time e))))
 
 (defn on-datetime-change []
   (let [selected-date (.datepicker ($ "#datepicker") "getDate")
@@ -214,13 +215,12 @@
 
 (defn init-snapshot-list []
   (->> (.-SNAPSHOT_LIST js/window) ; server injected to this in a <script>
-       ; (js->clj) ; TODO - Modify server to just send EDN and revert back to using native clojure types
-       ; (clojure.walk/keywordize-keys)
+       (cljs.reader/read-str)
        (reset! snapshot-list)))
 
 (defn init-snapshot-index []
   (let [image (attr ($ "#currentSnapshot") "src")
-        starting-index (first (keep-indexed #(if (= image (.-image %2)) %1) @snapshot-list))]
+        starting-index (first (keep-indexed #(if (= image (:image %2)) %1) @snapshot-list))]
     (reset! snapshot-index
       (if (pos? starting-index)
         starting-index
