@@ -16,9 +16,9 @@
 ;;------------------------------------------------------------------------------
 
 (def snapshot-list (atom nil))
-(def snapshot-index (atom nil)) ; can this be derived from current time, quickly?
+(def snapshot-index (atom nil))
 (def selected-time (atom nil))
-(def url-update-timeout (atom nil)) ; This probably doesn't need to be atom, maybe be clojure feature that handles this
+(def url-update-timeout (atom nil))
 
 ;;------------------------------------------------------------------------------
 ;; Timepicker
@@ -176,17 +176,16 @@
   (swap! selected-time + (minutes-to-ms 1))
   (show-closest-snapshot!))
 
-(defn click-later []
-  (if (pos? @snapshot-index)
-    (do
-      (swap! snapshot-index dec)
-      (sync-time-with-snapshot!))))
+(defn change-snapshot-index [change-fn]
+  (let [new-index (change-fn @snapshot-index)]
+    ; the index can not be outside the bounds of the snapshot list
+    (if (<= 0 new-index (dec (count @snapshot-list)))
+      (do
+        (reset! snapshot-index new-index)
+        (sync-time-with-snapshot!)))))
 
-(defn click-earlier []
-  (if (< @snapshot-index (count @snapshot-list))
-    (do
-      (swap! snapshot-index inc)
-      (sync-time-with-snapshot!))))
+(def click-later (partial change-snapshot-index dec))
+(def click-earlier (partial change-snapshot-index inc))
 
 (defn on-keydown [e]
   (let [key (.-which e)]
@@ -214,8 +213,8 @@
 ;;------------------------------------------------------------------------------
 
 (defn init-snapshot-list []
-  (->> (.-SNAPSHOT_LIST js/window) ; server injected to this in a <script>
-       (cljs.reader/read-str)
+  (->> (text ($ "#snapshot-list")) ; server injected to this in a <script>
+       (cljs.reader/read-string)
        (reset! snapshot-list)))
 
 (defn init-snapshot-index []

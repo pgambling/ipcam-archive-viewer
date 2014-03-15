@@ -19,7 +19,7 @@
         :compiler {
           :output-dir "public/js/out"
           :output-to "public/js/out/client.js"
-          :optimizations :advanced
+          :optimizations :simple
           :source-map "public/js/out/client.js.map"
           :externs ["externs/jquery-1.9.js"]}}
       :server {

@@ -30,6 +30,9 @@
 (defn days-to-ms [days]
   (* days 86400000))
 
+(defn log [msg]
+  (.log js/console msg))
+
 (defn log-error [msg]
   (.error js/console msg))
 
@@ -37,27 +40,22 @@
   (->> (.readFileSync fs "./config.cljs")
        (.toString)
        (cljs.reader/read-string)
-       (reset! config))
-  (let [file (.toString (.readFileSync fs "./config.cljs"))
-        file (.replace file (js/RegExp. "\\r|\\n" "g") "")
-        file (str "{:foo 1}")]
-    (.log js/console file)
-    (.log js/console (pr-str (cljs.reader/read-string "{:foo 1}")))))
+       (reset! config)))
 
 (defn generate-file-name [time]
   (-> time
     (js/Date.)
     (.toISOString)
-    (.replace (js/RegExp. ":" "g"))
+    (.replace (js/RegExp. ":" "g") "")
     (.substr 0 17)
     (str "Z.jpg")))
 
 (defn filename-to-time [fname]
-  (let [date-str (first (clojure.sftring/split fname "."))
-        hour (subs date-str 0 13)
+  (let [date-str (first (clojure.string/split fname "."))
+        date-and-hour (subs date-str 0 13)
         min (subs date-str 13 15)
         seconds (subs date-str 15)]
-    (js/Date. (str hour ":" min ":" seconds))))
+    (.getTime (js/Date. (str date-and-hour ":" min ":" seconds)))))
 
 (defn on-get-snapshot [response]
   (let [file-path (.join path (:archive-dir @config) (generate-file-name (js/Date.)))
@@ -75,12 +73,12 @@
 
 (defn generate-snapshot-list []
   (.readdir fs (:archive-dir @config) (fn [err files]
-    (if (err) (throw (js/Error. "Error reading snapshot directory!")))
-    (-> files
-      (filter #(= (.substr (- (count %) 3) %) "jpg"))
-      (map #({:image % :time (filename-to-time %)}))
-      (sort-by :time)
-      (reset! @snapshot-list)))))
+    (if err (throw (js/Error. "Error reading snapshot directory!")))
+    (->> files
+      (filter #(= (.extname path %) ".jpg"))
+      (map #(hash-map :image %, :time (filename-to-time %)))
+      (sort-by :time >)
+      (reset! snapshot-list)))))
 
 (defn delete-image [fname]
   (.unlink fs (.join path (:archive-dir @config) fname)))
@@ -106,13 +104,12 @@
         time (js/parseInt (.-time (.-query req)) 10)]
     ; default to first snapshot
     (if (js/isNaN time)
-      (.sent res (index (:time (first @snapshot-list)))))
-
-    ; load page with requested snapshot
-    (let [snapshot (first (filter #(= (:time %) time) @snapshot-list))]
-      (if (nil? snapshot)
-        (.send res 404)
-        (.sent res (index (:time snapshot)))))))
+      (.send res (index (:image (first @snapshot-list))))
+      (do
+        ; load page with requested snapshot
+        (if-let [snapshot (first (filter #(= (:time %) time) @snapshot-list))]
+          (.send res (index (:image snapshot)))
+          (.send res 404))))))
 
 (defn not-found [req res]
   (.send res 404))
@@ -149,7 +146,7 @@
       (.use (static-file-handler (str js/__dirname "/public") static-opts))
       (.use (static-file-handler (:archive-dir @config) static-opts))
       (.use not-found)
-      (.listen port)
-      (println "Listening on port " port))))
+      (.listen port))
+    (log (str "Listening on port " port))))
 
 (set! *main-cli-fn* -main)

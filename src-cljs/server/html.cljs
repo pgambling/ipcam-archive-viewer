@@ -34,5 +34,5 @@
      [:div#timepickerContainer]]]
    [:script {:src "js/libs/jquery-1.10.1.min.js"}]
    [:script {:src "js/libs/bootstrap-datepicker-20130809.js"}]
-   [:script {:type "application/edn"} (pr-str snapshot-list)]
+   [:script#snapshot-list {:type "application/edn"} (pr-str snapshot-list)]
    [:script {:src "js/out/client.js"}]]])
