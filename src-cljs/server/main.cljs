@@ -57,11 +57,16 @@
         seconds (subs date-str 15)]
     (.getTime (js/Date. (str date-and-hour ":" min ":" seconds)))))
 
+(defn make-snapshot-entry [fname]
+  (hash-map :image fname, :time (filename-to-time fname)))
+
 (defn on-get-snapshot [response]
-  (let [file-path (.join path (:archive-dir @config) (generate-file-name (js/Date.)))
+  (let [fname (generate-file-name (js/Date.))
+        file-path (.join path (:archive-dir @config) fname)
         file (.createWriteStream fs file-path)]
     (.pipe response file)
-    (.on file "finish" #(.close file))))
+    (.on file "finish" #(.close file))
+    (swap! snapshot-list conj (make-snapshot-entry fname))))
 
 (defn on-get-snapshot-error [e]
   (log-error (str "Error downloading snapshot: " (.-message e))))
@@ -76,7 +81,7 @@
     (if err (throw (js/Error. "Error reading snapshot directory!")))
     (->> files
       (filter #(= (.extname path %) ".jpg"))
-      (map #(hash-map :image %, :time (filename-to-time %)))
+      (map make-snapshot-entry)
       (sort-by :time >)
       (reset! snapshot-list)))))
 
