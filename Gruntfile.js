@@ -1,12 +1,3 @@
-/*
- * Copyright (c) 2013 by PROS Revenue Management.  All Rights Reserved.
- * This software is the confidential and proprietary information of
- * PROS Revenue Management ("Confidential Information").
- * You shall not disclose such Confidential Information and shall use it
- * only in accordance with the terms of the license agreement you entered
- * into with PROS.
- */
-
 //
 // NOTE: This is not doing any file optimization yet.
 //
